@@ -78,7 +78,7 @@ app.post("/", async (req, res) => {
     } else if (payload.message.text) {
       const input = payload.message.text;
       for (const targetChatId of targetChatIds) {
-        const response = `User ${userFirstName} (User ID: ${chatId}) said: "${input}"`;
+        const response = `User ${userFirstName} said: "${input}"`;
         await sendMessage(API_KEY, targetChatId, response);
       }
     }
