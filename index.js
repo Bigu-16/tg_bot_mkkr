@@ -48,8 +48,20 @@ app.post("/", async (req, res) => {
 
     const chatId = payload.message.chat.id;
     const userFirstName = payload.message.from.username || "User";
-    console.log("Received message from:", userFirstName);
 
+    // Check if the message is a reply from an admin
+    if (payload.message.reply_to_message) {
+      const originalUserChatId =
+        payload.message.reply_to_message.text.match(/User ID: (\d+)/)?.[1];
+      if (originalUserChatId) {
+        const adminReply = payload.message.text;
+        await sendMessage(API_KEY, originalUserChatId, `Admin: ${adminReply}`);
+        console.log(`Forwarded admin reply to user ${originalUserChatId}`);
+        return res.status(200).send("OK");
+      }
+    }
+
+    // Forward user messages to admins
     if (payload.message.document || payload.message.photo) {
       const file = payload.message.document || payload.message.photo[0];
       const fileId = file.file_id;
@@ -57,11 +69,16 @@ app.post("/", async (req, res) => {
 
       for (const targetChatId of targetChatIds) {
         await sendFile(API_KEY, targetChatId, fileId, fileType);
+        await sendMessage(
+          API_KEY,
+          targetChatId,
+          `User ${userFirstName} (User ID: ${chatId}) sent a ${fileType}.`
+        );
       }
     } else if (payload.message.text) {
       const input = payload.message.text;
       for (const targetChatId of targetChatIds) {
-        const response = `${userFirstName} said: ${input}`;
+        const response = `User ${userFirstName} (User ID: ${chatId}) said: "${input}"`;
         await sendMessage(API_KEY, targetChatId, response);
       }
     }
